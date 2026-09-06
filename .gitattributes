@@ -1,0 +1,12 @@
+# Normalise line endings. Without this, cloning on Windows gives the shell
+# scripts CRLF, and running them on a Linux server fails with "bad interpreter".
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.java text eol=lf
+*.yml  text eol=lf
+*.kts  text eol=lf
+*.md   text eol=lf
+
+*.jar  binary
+*.png  binary
