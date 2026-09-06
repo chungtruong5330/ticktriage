@@ -400,6 +400,44 @@ from `World#getForceLoadedChunks()` would close most of that gap, but adding
 Folia code that cannot be tested here would be a worse trade than documenting
 it, so it is documented.
 
+### Claim plugins
+
+Tested against live **WorldGuard 7.0.18** and **GriefPrevention 16.18.7** on the
+Paper server. Both are built for 26.1 and load and run fine on 26.2.
+
+Both hooks initialise:
+
+```
+[TickTriage] Hooked into WorldGuard for claim protection.
+[TickTriage] Hooked into GriefPrevention for claim protection.
+[TickTriage] Claim protection: WorldGuard, GriefPrevention
+```
+
+The real test used a WorldGuard region covering only the **western half** of the
+hotspot (x -48 to -1), so a working hook has to split the items by coordinate
+rather than pass or fail everything:
+
+```
+  Inspected: 14,523
+  Removed: 4,184
+  Skipped 10,339:
+    10,334 - inside a protected region or claim
+    5 - has a custom name
+```
+
+30,005 items went to 25,821, and items remain inside the region at x = -23.5.
+That split is the verification: "everything skipped" would mean a broken hook
+failing closed, "nothing skipped" would mean the region never loaded.
+
+It also proves the GriefPrevention hook is live and healthy, for a slightly
+indirect reason. `CompositeProtection` fails closed - if GriefPrevention had
+thrown, every location would have come back protected and *nothing* would have
+been removable. 4,184 items were removed, so it was queried and correctly
+answered "not claimed".
+
+Incident-log persistence was confirmed along the way too: a restart logged
+`Loaded 4 past incidents from incidents.tsv`.
+
 ### Known limitation found while testing
 
 A *sustained* flood eventually becomes the baseline. Once more than half the
@@ -440,10 +478,10 @@ the tests live.
   above), but the per-region census only fires when a player is online, and no
   headless client speaks 26.2 yet. The scheduling, loading and command paths are
   verified; the census and merge on real regions are not.
-- **The WorldGuard and GriefPrevention hooks.** They compile against the real
-  APIs, and the test server ran correctly without either installed (reporting
-  "Claim protection: none"), but neither has been exercised against a live
-  instance.
+- **Claim protection under real load.** Both hooks are now verified against
+  live instances (see above), but only with a hand-written region and no
+  GriefPrevention claims - a claim created by an actual player, with owners and
+  flags, has not been tried.
 - **The real false-positive rate on a populated server.** Everything above was
   measured with zero players on a flat world. Player movement, chunk loading,
   redstone and mob AI are the actual sources of lag on a real server, and none
