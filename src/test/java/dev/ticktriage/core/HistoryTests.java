@@ -194,6 +194,34 @@ public final class HistoryTests {
                         .contains("No incidents"));
     }
 
+    static void testOldRowsWithoutPeakTickTimeStillDecode() {
+        // The peak-ms column was added after rows were already on disk. An
+        // 8-column row must still load rather than being dropped as corrupt.
+        String legacy = T0 + "	6	5.50	34	entity-flood	CRITICAL	flood	0";
+        IncidentRecord back = IncidentRecord.decode(legacy);
+        check("a row written before the peak-ms column still decodes",
+                back != null && back.removed == 0 && back.peakMsPerTick == 0.0,
+                back == null ? "null" : String.valueOf(back.peakMsPerTick));
+        check("and a nine-column row round-trips",
+                IncidentRecord.decode(new IncidentRecord(T0, 6, 5.5, 34, "r",
+                        "CRITICAL", "h", 0, 181.0).encode()).peakMsPerTick
+                        == 181.0);
+    }
+
+    static void testHistoryDoesNotClaimTpsFellWhenItDidNot() {
+        // Found during a sweep: /tt history said "20.0 TPS for 12s" for an
+        // incident where TPS never moved. Below a 50 ms tick the tick time is
+        // the meaningful number.
+        String quiet = new IncidentRecord(T0, 12, 20.0, 5, "entity-flood",
+                "CRITICAL", "30,005 dropped items", 0, 39.0).summarise(T0);
+        check("a sub-50ms incident reports tick time, not TPS",
+                quiet.contains("39 ms ticks") && !quiet.contains("TPS"), quiet);
+        String real = new IncidentRecord(T0, 6, 5.5, 5, "entity-flood",
+                "CRITICAL", "flood", 0, 181.0).summarise(T0);
+        check("a genuine TPS drop still reports TPS",
+                real.contains("5.5 TPS"), real);
+    }
+
     static void testSummariseRendersRelativeAge() {
         IncidentRecord r = record(T0, "entity-flood", "flood", 0);
         check("recent incidents read in minutes",

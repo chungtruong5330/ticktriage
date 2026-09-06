@@ -30,10 +30,19 @@ public final class IncidentRecord {
     public final String headline;
     /** Entities removed by a fix for this incident, or 0 if none was applied. */
     public final int removed;
+    /** Peak tick time in ms, or 0 for rows written before this was recorded. */
+    public final double peakMsPerTick;
 
     public IncidentRecord(long startMillis, int durationSeconds, double worstTps,
                           int playerCount, String ruleId, String severity,
                           String headline, int removed) {
+        this(startMillis, durationSeconds, worstTps, playerCount, ruleId,
+                severity, headline, removed, 0.0);
+    }
+
+    public IncidentRecord(long startMillis, int durationSeconds, double worstTps,
+                          int playerCount, String ruleId, String severity,
+                          String headline, int removed, double peakMsPerTick) {
         this.startMillis = startMillis;
         this.durationSeconds = durationSeconds;
         this.worstTps = worstTps;
@@ -42,6 +51,7 @@ public final class IncidentRecord {
         this.severity = severity == null ? "WARNING" : severity;
         this.headline = headline == null ? "" : headline;
         this.removed = removed;
+        this.peakMsPerTick = peakMsPerTick;
     }
 
     public static IncidentRecord from(Incident incident, Diagnosis primary,
@@ -52,19 +62,20 @@ public final class IncidentRecord {
                 primary == null ? "unknown" : primary.ruleId,
                 primary == null ? "WARNING" : primary.severity.name(),
                 primary == null ? "Unexplained incident" : primary.headline,
-                removed);
+                removed, incident.peakMsPerTick());
     }
 
     public IncidentRecord withRemoved(int removed) {
         return new IncidentRecord(startMillis, durationSeconds, worstTps,
-                playerCount, ruleId, severity, headline, removed);
+                playerCount, ruleId, severity, headline, removed, peakMsPerTick);
     }
 
     public String encode() {
         return startMillis + "\t" + durationSeconds + "\t"
                 + Stats.formatDouble(worstTps, 2) + "\t" + playerCount + "\t"
                 + escape(ruleId) + "\t" + escape(severity) + "\t"
-                + escape(headline) + "\t" + removed;
+                + escape(headline) + "\t" + removed + "\t"
+                + Stats.formatDouble(peakMsPerTick, 2);
     }
 
     /** @return the record, or null if the line is malformed. */
@@ -82,7 +93,9 @@ public final class IncidentRecord {
                     Double.parseDouble(parts[2].trim()),
                     Integer.parseInt(parts[3].trim()),
                     unescape(parts[4]), unescape(parts[5]), unescape(parts[6]),
-                    Integer.parseInt(parts[7].trim()));
+                    Integer.parseInt(parts[7].trim()),
+                    // Field added later; rows written before it still decode.
+                    parts.length > 8 ? Double.parseDouble(parts[8].trim()) : 0.0);
         } catch (RuntimeException e) {
             // A corrupt line loses one incident, not the whole file.
             return null;
@@ -125,8 +138,15 @@ public final class IncidentRecord {
                         ? (agoSeconds / 3600) + "h ago"
                         : (agoSeconds / 86400) + "d ago");
         StringBuilder sb = new StringBuilder();
-        sb.append(ago).append(" - ").append(Stats.formatDouble(worstTps, 1))
-                .append(" TPS for ").append(durationSeconds).append("s - ")
+        // Below a 50 ms tick, TPS is still 20 and quoting it says nothing -
+        // the tick time is the story. Same reasoning as Incident#describeImpact.
+        sb.append(ago).append(" - ");
+        if (worstTps < 19.95 || peakMsPerTick <= 0.0) {
+            sb.append(Stats.formatDouble(worstTps, 1)).append(" TPS");
+        } else {
+            sb.append(Stats.formatDouble(peakMsPerTick, 0)).append(" ms ticks");
+        }
+        sb.append(" for ").append(durationSeconds).append("s - ")
                 .append(headline);
         if (removed > 0) {
             sb.append(" (fixed: ").append(Stats.formatCount(removed))
