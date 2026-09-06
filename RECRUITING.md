@@ -4,19 +4,15 @@ Notes to self. Not part of the plugin.
 
 ## Before posting anywhere
 
-**The licence blocks this.** As written, `LICENSE` grants nobody permission to
-use the plugin, and the repo is private. A tester would have no legal right to
-run it and no way to get it. Pick one:
+**Licence: done.** `LICENSE` now carries a beta testing grant — anyone may run
+any pre-1.0 version free on servers they operate, including monetised ones, but
+may not redistribute or republish it. It is revocable and expires automatically
+at 1.0.0, so it does not leak into a future paid release.
 
-- **Add a testing grant** to the proprietary licence — narrowest change, keeps
-  every option open. Something like: permission to run unmodified copies on
-  servers you operate, for evaluation, revocable, no redistribution.
-- **Go MIT** — simplest, and the strongest signal for getting installs, but a
-  one-way door: anything published stays free for whoever has it.
-- **Test only with people you know**, informally, and skip public recruitment
-  entirely.
-
-Nothing below works until this is settled.
+**Still to do: the repo is private.** A testing grant is useless if nobody can
+obtain the jar. Make the repo public and cut a GitHub release with the jar
+attached, so there is a single link that is not "clone it and build it
+yourself". Nothing below works until that is done.
 
 ## Where the people actually are
 

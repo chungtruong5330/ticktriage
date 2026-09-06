@@ -1,12 +1,57 @@
 Copyright (c) 2026 chungtruong5330. All rights reserved.
 
-TickTriage is proprietary software. No permission is granted to use, copy,
-modify, merge, publish, distribute, sublicense, or sell copies of this software
-except under a separate written licence from the copyright holder, or under the
-terms of a purchase made through an authorised distribution channel.
+TickTriage is proprietary software. Except as expressly permitted below, no
+permission is granted to use, copy, modify, merge, publish, distribute,
+sublicense, or sell copies of this software, other than under a separate written
+licence from the copyright holder or under the terms of a purchase made through
+an authorised distribution channel.
 
 Purchasing a copy grants the buyer the right to run it on servers they operate.
 It does not grant the right to redistribute it, republish it, or resell it.
+
+
+-------------------------------------------------------------------------------
+Beta testing grant
+-------------------------------------------------------------------------------
+
+This section applies only to pre-release versions, meaning any version numbered
+below 1.0.0. It exists so that people can help test the software before it is
+finished.
+
+You are permitted, free of charge, to:
+
+  1. Download and install unmodified copies of a pre-release version.
+  2. Run it on Minecraft servers that you own or operate, including servers that
+     take donations or sell ranks.
+  3. Modify your own copy locally for the purpose of diagnosing a problem, and
+     share those changes with the copyright holder as a bug report.
+
+You are not permitted to:
+
+  1. Redistribute the software, modified or not, to anyone else. Point people at
+     the official source instead.
+  2. Publish it on any plugin marketplace, mirror, or download site.
+  3. Sell it, or bundle it into anything sold, including server packs.
+  4. Remove or alter this notice.
+
+This grant is revocable at any time and for any reason, and it ends
+automatically when version 1.0.0 is released. Revocation means you stop using
+it; it does not require you to do anything else.
+
+Reports, logs, and suggestions you send about the software may be used to
+improve it, without obligation or compensation. Nothing here transfers ownership
+of your server data, worlds, or configuration - the software sends nothing
+anywhere unless you configure a Discord webhook yourself.
+
+Testing software is testing software. It has bugs, it has been wrong before, and
+it may be wrong on your server. Run it with `remediation.auto-apply` left off,
+on a server you can afford to have misbehave. The warranty disclaimer below
+applies in full, and applies especially here.
+
+
+-------------------------------------------------------------------------------
+No warranty
+-------------------------------------------------------------------------------
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
@@ -20,14 +65,18 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Why this licence and not MIT
 -------------------------------------------------------------------------------
 
-This is deliberately restrictive because the plan is to sell the plugin. Under a
-permissive licence such as MIT, anyone could legally take the paid build, upload
-it somewhere, and give it away - and you would have no standing to object. That
-is not a hypothetical in the Minecraft plugin market.
+This is deliberately restrictive because selling the plugin is still an option.
+Under a permissive licence such as MIT, anyone could legally take the build,
+upload it somewhere, and give it away - and you would have no standing to
+object. That is not a hypothetical in the Minecraft plugin market.
 
-If you would rather open-source it, MIT or Apache-2.0 are the usual choices, and
-swapping this file is all it takes. A common middle path is to keep the core
-proprietary and publish a free-tier build separately.
+The beta testing grant above is the narrow exception: it lets people run it and
+report back, which is the only way to find out whether the thing works, without
+giving away the right to redistribute or sell it.
+
+If you would rather open-source it, MIT or Apache-2.0 are the usual choices and
+swapping this file is all it takes - but note that anything already published
+under a permissive licence stays that way for whoever has it.
 
 This is a plain-language starting point written by a programmer, not a lawyer,
 and it is not legal advice. If real money starts flowing through this, get an

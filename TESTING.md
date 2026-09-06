@@ -10,6 +10,14 @@ like, and when things get slow tells you **why** — with coordinates and the
 config setting to change. It can also clear the excess at the one hotspot
 responsible, but it will not do that on its own unless you turn that on.
 
+## Am I allowed to run this?
+
+Yes. It is proprietary software, but the licence carries a **beta testing
+grant**: you may run any pre-1.0 version free of charge on servers you own or
+operate, including servers that take donations or sell ranks. You may not
+redistribute it or republish it — point people at the official source instead.
+See `LICENSE` for the exact wording.
+
 ## Install
 
 1. Requires **Paper or Folia 26.2** and **Java 25**.
