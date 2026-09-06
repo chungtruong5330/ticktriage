@@ -365,6 +365,65 @@ public final class CoreTests {
         }
     }
 
+    // --- census scheduling ------------------------------------------------
+
+    /**
+     * Regression tests for a bug that made the block-entity census never run.
+     *
+     * <p>The old code seeded a counter at Integer.MAX_VALUE to force a census on
+     * the first sample, then pre-incremented it - which overflows to
+     * Integer.MIN_VALUE. Hoppers and spawners were never counted on any server,
+     * and it was silent: a census that never runs looks identical to a server
+     * with no hoppers. Found by placing 17,600 hoppers on a real server and
+     * watching the plugin report that nothing had changed.
+     */
+    static void testCensusRunsOnTheVeryFirstSample() {
+        check("the first sample always censuses",
+                new CensusSchedule(15).due(),
+                "otherwise nothing is counted until the interval elapses");
+    }
+
+    static void testCensusHonoursItsInterval() {
+        CensusSchedule schedule = new CensusSchedule(3);
+        boolean[] got = new boolean[9];
+        for (int i = 0; i < 9; i++) {
+            got[i] = schedule.due();
+        }
+        check("a interval of 3 fires on samples 1, 4 and 7",
+                got[0] && !got[1] && !got[2] && got[3] && !got[4] && !got[5]
+                        && got[6] && !got[7] && !got[8],
+                java.util.Arrays.toString(got));
+    }
+
+    static void testCensusIntervalOfOneFiresEveryTime() {
+        CensusSchedule schedule = new CensusSchedule(1);
+        boolean all = true;
+        for (int i = 0; i < 20; i++) {
+            all &= schedule.due();
+        }
+        check("an interval of 1 censuses every sample", all);
+    }
+
+    static void testCensusNeverStallsOverManySamples() {
+        // The original bug meant it would not have fired again for ~4.3 billion
+        // samples. Anything that stalls shows up immediately here.
+        CensusSchedule schedule = new CensusSchedule(15);
+        int fired = 0;
+        for (int i = 0; i < 15_000; i++) {
+            if (schedule.due()) {
+                fired++;
+            }
+        }
+        check("15,000 samples at interval 15 fire 1,000 times", fired == 1000,
+                "fired " + fired + " times");
+    }
+
+    static void testCensusRejectsSillyIntervals() {
+        check("a zero or negative interval degrades to every sample",
+                new CensusSchedule(0).due() && new CensusSchedule(-5).due()
+                        && new CensusSchedule(0).interval() == 1);
+    }
+
     // --- rendering --------------------------------------------------------
 
     static void testSubFiftyMsSpikeDoesNotClaimTpsFell() {

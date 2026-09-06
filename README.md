@@ -29,13 +29,13 @@ Automatic fixes (1):
 A blunt cleanup plugin takes all 4,664. This takes 4,017 and explains the other
 647.
 
-**Paper & Folia 26.2 · JDK 25 · 154 tests · no runtime dependencies · no telemetry**
+**Paper & Folia 26.2 · JDK 25 · 159 tests · no runtime dependencies · no telemetry**
 
 Verified end to end on a real Paper 26.2 server. See [Live-server results](#live-server-results).
 
 ```bash
 bash build-jar.sh        # -> build/TickTriage-0.1.0.jar  (117 KB)
-bash run-core-tests.sh   # 154 tests + benchmark + demo, no server needed
+bash run-core-tests.sh   # 159 tests + benchmark + demo, no server needed
 ```
 
 > Renamed from **LagDoctor**, which is taken on SpigotMC. `Lag*` is a crowded
@@ -400,6 +400,73 @@ from `World#getForceLoadedChunks()` would close most of that gap, but adding
 Folia code that cannot be tested here would be a worse trade than documenting
 it, so it is documented.
 
+### Bug 4: the block-entity census had never run, on any server
+
+17,600 hoppers were placed on the test server and the plugin reported *"no
+tracked metric moved materially during the spike"*.
+
+The sampler seeded its counter at `Integer.MAX_VALUE` so that the first sample
+would force a census, then pre-incremented it:
+
+```java
+private int samplesSinceBlockCensus = Integer.MAX_VALUE;
+boolean due = ++samplesSinceBlockCensus >= blockCensusEvery;
+```
+
+`Integer.MAX_VALUE + 1` overflows to `Integer.MIN_VALUE`. The first check
+compared minus two billion against the interval, failed, and then counted upward
+one sample at a time - so the census would first have run after about 4.3
+billion samples, roughly 270 years at one every two seconds. **Hoppers, spawners
+and furnaces were never counted, and `block-entity-flood` could never fire.**
+
+It was silent in the worst way: a census that never runs is indistinguishable
+from a server with no hoppers. Both samplers had it. The logic now lives in
+`CensusSchedule` in `core`, where five tests cover it, and the surrounding
+`catch` no longer swallows failures silently - it logs once, because a census
+that starts failing should not look like good news either.
+
+With that fixed, the same test produced:
+
+```
+[CRITICAL] 17,600 hopper blocks in world 'world' (100%)
+  - 17,600 at peak versus a normal 0
+  - No single hotspot - spread across the world
+  Fix: Hoppers poll for items constantly, even empty ones. Raise
+  ticks-per.hopper-transfer in spigot.yml...
+```
+
+and correctly refused to automate it: *"Not automated: fixing this means
+breaking blocks somebody placed."*
+
+### What the block-entity census actually costs
+
+Measured with 17,600 hoppers across ~1,500 loaded chunks, using the
+snapshot-free `getTileEntities(false)` overload:
+
+| Census interval | Steady tick time |
+| --- | ---: |
+| never running (the bug) | 4.2 ms |
+| every sample (2 s) | 4.8 ms |
+
+So about **0.6 ms amortised per tick when run every two seconds**, which works
+out to roughly **24 ms for a single census pass**. That is half a tick budget in
+one go, which is exactly why it is rate limited: at the default of every 15
+samples it costs about 0.04 ms amortised, one 24 ms pass every 30 seconds.
+
+### `/reload`
+
+There is nothing to survive. Paper 26.2 no longer has Bukkit's plugin `/reload`
+- `/reload` is Mojang's datapack reload and does not touch plugins. Running it
+left TickTriage enabled and sampling at exactly its normal rate (10 samples in
+20 seconds, before and after), with no duplicate schedulers.
+
+The console alert path was confirmed working in passing, too:
+
+```
+[TickTriage] Lag incident detected:
+[TickTriage] [CRITICAL] 17,600 hopper blocks in world 'world' (100% confidence)
+```
+
 ### Claim plugins
 
 Tested against live **WorldGuard 7.0.18** and **GriefPrevention 16.18.7** on the
@@ -456,11 +523,11 @@ another reason Bug 1 mattered.
 - Compiles against real paper-api 26.2, WorldGuard 7.0.18 and GriefPrevention
   16.18.4 on JDK 25 — 72 classes, zero errors
 - Produces a working 117 KB jar with correct `plugin.yml` (`api-version: '26.2'`)
-- **154 tests** across five suites, all passing:
+- **159 tests** across five suites, all passing:
 
 | Suite | Tests | Covers |
 | --- | ---: | --- |
-| `CoreTests` | 40 | detection, baselines, ranking, standing problems |
+| `CoreTests` | 45 | detection, baselines, ranking, standing problems, census scheduling |
 | `CensusTests` | 20 | the hand-written hash map and its Folia merge |
 | `RemedyTests` | 27 | what remediation refuses to do |
 | `ProtectionTests` | 25 | claim protection, failing closed |
@@ -486,9 +553,9 @@ the tests live.
   measured with zero players on a flat world. Player movement, chunk loading,
   redstone and mob AI are the actual sources of lag on a real server, and none
   of them were present.
-- **Block-entity cost.** No hoppers or spawners existed in the test world, so
-  `Chunk#getTileEntities()` was never exercised at scale.
-- Whether scheduler tasks survive `/reload`.
+- **Block-entity diagnosis under mixed load.** Hoppers are now counted and
+  costed (see above), but only as a uniform 40x40 slab with nothing else
+  happening.
 
 Running a live server means accepting the Minecraft EULA, which is yours to
 accept. Download Paper 26.2, set `eula=true`, drop the jar in `plugins/`, and
@@ -500,7 +567,7 @@ leave it a week on a server you don't mind breaking. **Keep
 ## Architecture
 
 ```
-core/            no Bukkit imports anywhere — this is why 154 tests run offline
+core/            no Bukkit imports anywhere — this is why 159 tests run offline
   Snapshot           one immutable sample of server state
   WorldCensus        the per-entity hot loop; primitive hash map, benchmarked
   Baseline           what normal looks like, from medians

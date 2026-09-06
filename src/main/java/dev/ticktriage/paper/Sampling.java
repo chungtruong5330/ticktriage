@@ -4,6 +4,8 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -34,14 +36,34 @@ final class Sampling {
         }
     }
 
-    /** Counts ticking block entities in one chunk. The expensive half. */
+    private static final Logger LOG = Logger.getLogger("TickTriage");
+    private static volatile boolean blockCensusFailureLogged = false;
+
+    /**
+     * Counts ticking block entities in one chunk. The expensive half.
+     *
+     * <p>Uses the snapshot-free overload: the default {@code getTileEntities()}
+     * builds a full {@link BlockState} copy of every block entity, and all this
+     * needs is the material name.
+     *
+     * <p>A failure here is logged once rather than swallowed. It used to return
+     * silently, which meant a census that never worked was indistinguishable
+     * from a server with no hoppers - the plugin would have reported "nothing
+     * changed" forever and nobody would have known why.
+     */
     static void scanBlockEntities(Chunk chunk, Map<String, Integer> counts) {
         BlockState[] states;
         try {
-            states = chunk.getTileEntities();
+            states = chunk.getTileEntities(false);
         } catch (Throwable t) {
-            // A chunk can unload mid-iteration; a census is not worth an
-            // exception in the scheduler.
+            // A chunk can unload mid-iteration, which is benign and expected.
+            // Anything else is a real fault worth surfacing exactly once.
+            if (!blockCensusFailureLogged) {
+                blockCensusFailureLogged = true;
+                LOG.log(Level.WARNING, "Block-entity census failed; hopper and"
+                        + " spawner diagnosis will not work until this is"
+                        + " resolved.", t);
+            }
             return;
         }
         for (BlockState state : states) {

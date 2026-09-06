@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import dev.ticktriage.core.CensusSchedule;
 import dev.ticktriage.core.Snapshot;
 import dev.ticktriage.core.WorldCensus;
 
@@ -31,16 +32,15 @@ import dev.ticktriage.core.WorldCensus;
  */
 public final class ServerSampler implements SnapshotSource {
 
-    private final int blockCensusEvery;
+    private final CensusSchedule blockCensus;
     private final Sampling.GlobalStatsReader global =
             new Sampling.GlobalStatsReader();
 
-    private int samplesSinceBlockCensus = Integer.MAX_VALUE;
     private Map<String, Map<String, Integer>> cachedBlockEntities =
             new LinkedHashMap<>();
 
     public ServerSampler(int blockCensusEvery) {
-        this.blockCensusEvery = Math.max(1, blockCensusEvery);
+        this.blockCensus = new CensusSchedule(blockCensusEvery);
     }
 
     @Override
@@ -53,9 +53,8 @@ public final class ServerSampler implements SnapshotSource {
     public void sample(Consumer<Snapshot> onComplete) {
         Sampling.GlobalStats stats = global.read();
 
-        boolean censusBlocks = ++samplesSinceBlockCensus >= blockCensusEvery;
+        boolean censusBlocks = blockCensus.due();
         if (censusBlocks) {
-            samplesSinceBlockCensus = 0;
             cachedBlockEntities = new LinkedHashMap<>();
         }
 

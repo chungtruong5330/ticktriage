@@ -17,6 +17,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import dev.ticktriage.core.CensusSchedule;
 import dev.ticktriage.core.Snapshot;
 import dev.ticktriage.core.WorldCensus;
 
@@ -49,7 +50,7 @@ public final class FoliaSampler implements SnapshotSource {
     private static final long ROUND_TIMEOUT_MILLIS = 30_000L;
 
     private final Platform platform;
-    private final int blockCensusEvery;
+    private final CensusSchedule blockCensus;
     private final int scanRadius;
     private final Sampling.GlobalStatsReader global =
             new Sampling.GlobalStatsReader();
@@ -57,12 +58,11 @@ public final class FoliaSampler implements SnapshotSource {
     private final AtomicReference<Round> inFlight = new AtomicReference<>();
     private volatile Map<String, Map<String, Integer>> cachedBlockEntities =
             new ConcurrentHashMap<>();
-    private int samplesSinceBlockCensus = Integer.MAX_VALUE;
 
     public FoliaSampler(Platform platform, int blockCensusEvery,
                         int scanRadius) {
         this.platform = platform;
-        this.blockCensusEvery = Math.max(1, blockCensusEvery);
+        this.blockCensus = new CensusSchedule(blockCensusEvery);
         this.scanRadius = Math.max(1, scanRadius);
     }
 
@@ -86,10 +86,7 @@ public final class FoliaSampler implements SnapshotSource {
         }
 
         Sampling.GlobalStats stats = global.read();
-        boolean censusBlocks = ++samplesSinceBlockCensus >= blockCensusEvery;
-        if (censusBlocks) {
-            samplesSinceBlockCensus = 0;
-        }
+        boolean censusBlocks = blockCensus.due();
 
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
         if (players.isEmpty()) {
