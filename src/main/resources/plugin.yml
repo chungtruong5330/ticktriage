@@ -3,8 +3,8 @@ version: '${version}'
 main: dev.ticktriage.paper.TickTriagePlugin
 api-version: '26.2'
 description: Explains why your server lagged, in plain language, with the fix.
-author: chungtruong5330
-website: https://github.com/chungtruong5330/ticktriage
+author: slateline
+website: https://github.com/slateline/ticktriage
 
 # Optional. Claim protection hooks load only if these are present.
 softdepend: [WorldGuard, GriefPrevention]

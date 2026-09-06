@@ -29,7 +29,7 @@ with players on it — see [Status](#status).
 
 ## Installation
 
-1. Download the jar from [Releases](https://github.com/chungtruong5330/ticktriage/releases).
+1. Download the jar from [Releases](https://github.com/slateline/ticktriage/releases).
 2. Drop it in `plugins/` and restart.
 3. Wait about a minute while it learns your server's baseline.
 4. `/tt status`
