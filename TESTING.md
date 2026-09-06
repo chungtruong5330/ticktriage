@@ -12,11 +12,9 @@ responsible, but it will not do that on its own unless you turn that on.
 
 ## Am I allowed to run this?
 
-Yes. It is proprietary software, but the licence carries a **beta testing
-grant**: you may run any pre-1.0 version free of charge on servers you own or
-operate, including servers that take donations or sell ranks. You may not
-redistribute it or republish it — point people at the official source instead.
-See `LICENSE` for the exact wording.
+Yes, freely. It is **GPL-3.0** free software. Run it on any server including a
+monetised one, modify it, and share it. If you distribute a modified build, ship
+your source alongside it — that is the only condition.
 
 ## Install
 

@@ -4,15 +4,12 @@ Notes to self. Not part of the plugin.
 
 ## Before posting anywhere
 
-**Licence: done.** `LICENSE` now carries a beta testing grant — anyone may run
-any pre-1.0 version free on servers they operate, including monetised ones, but
-may not redistribute or republish it. It is revocable and expires automatically
-at 1.0.0, so it does not leak into a future paid release.
+**Licence: done.** GPL-3.0. Anyone may run, modify and share it; modified
+builds distributed to others must ship their source. No barrier to testers at
+all now, and no awkward "you may not redistribute this" conversation.
 
-**Still to do: the repo is private.** A testing grant is useless if nobody can
-obtain the jar. Make the repo public and cut a GitHub release with the jar
-attached, so there is a single link that is not "clone it and build it
-yourself". Nothing below works until that is done.
+**Repo: public**, with a v0.1.0 prerelease and the jar attached. Nothing is
+blocking recruitment.
 
 ## Where the people actually are
 
@@ -24,9 +21,8 @@ yourself". Nothing below works until that is done.
 | **Modrinth** | Publish as a beta release | Not recruitment exactly, but it makes the jar obtainable and gives a download counter, which is the cheapest possible demand signal. |
 | **Hangar** (PaperMC's own) | Same, and closer to the Paper audience | Worth doing alongside Modrinth. |
 
-Do **not** start with BuiltByBit or Polymart. Those are storefronts; showing up
-with an unproven v0.1 sets the wrong first impression on the platforms where a
-paid version would eventually live.
+Do **not** start with BuiltByBit or Polymart. Those are storefronts and the
+plugin is free software now, so they are simply the wrong venue.
 
 ## What to ask for
 

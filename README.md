@@ -31,6 +31,14 @@ A blunt cleanup plugin takes all 4,664. This takes 4,017 and explains the other
 
 **Paper & Folia 26.2 · JDK 25 · 159 tests · no runtime dependencies · no telemetry**
 
+**Free software, GPL-3.0.** Use it anywhere, including on a server that makes
+money. Fork it, change it, publish your changes - the only condition is that
+modified versions you distribute stay open too.
+
+**Free software, GPL-3.0.** Use it anywhere, including on a server that makes
+money. Fork it, change it - the only condition is that modified versions you
+distribute stay open too.
+
 Verified end to end on a real Paper 26.2 server. See [Live-server results](#live-server-results).
 
 ```bash
@@ -48,7 +56,8 @@ bash run-core-tests.sh   # 159 tests + benchmark + demo, no server needed
 ## Why it works this way
 
 The original plan was diagnosis-as-product with fixing as a premium upsell. The
-download numbers said that was backwards.
+download numbers said that was backwards - and they still explain the design,
+even though the plugin ended up free software rather than a paid one.
 
 Modrinth, September 2026:
 
@@ -70,7 +79,7 @@ Tools that **fix** sit at 170k–310k and are actively maintained. Tools that
 comparable. The Modrinth-internal ordering carries the argument.)*
 
 Category demand is real and large — spark at 21.5M settles that — but
-**explanation alone does not sell**. Owners want the problem gone.
+**explanation alone is not what people install**. Owners want the problem gone.
 
 **The opening is that the fixers fix bluntly.** LagFixer and ClearLag++ clear
 all ground items everywhere on a timer, which is why owners complain about them
@@ -619,12 +628,11 @@ fix something the first time you run `gradle build`.
    players, chunk loading, redstone and mob AI, none of which were present.
 2. **Verify the name** on every marketplace.
 3. **Fill in `plugin.yml`** — `website` still says `CHANGE_ME`.
-4. **Read the piracy forums.** Cracked listings are a ranked list of what
-   genuinely sells, and they'll tell you your realistic leakage rate.
-5. **Free version first.** Diagnosis, history and dry-run free on SpigotMC and
-   Modrinth for reach; automatic remediation and Discord alerts paid on
-   BuiltByBit and Polymart. Reviews on the free one are the credibility you
-   don't have yet.
+4. **Publish everywhere that costs nothing.** Modrinth and Hangar first, then
+   SpigotMC for reach. Nothing is held back - the whole plugin is free software.
+5. **Expect support to be the real cost.** A free plugin with users still
+   generates bug reports, and version churn means it breaks every Minecraft
+   drop. That maintenance is the price of the reputation it buys you.
 
 ## Roadmap
 
@@ -632,5 +640,18 @@ fix something the first time you run `gradle build`.
 2. Per-plugin attribution — hard, but the feature people would pay most for
 3. A web dashboard for incident history, if owners ask for it
 
-Suggested pricing: free tier diagnoses and dry-runs; paid (~$15–20) applies
-fixes automatically and posts to Discord.
+## Licence
+
+**GPL-3.0.** TickTriage is free software: run it on any server, including one
+that makes money, and modify it however you like.
+
+The one condition is copyleft - if you distribute a modified version, you
+publish your source too. That is deliberate. Rehosting somebody else's plugin
+under a new name is a known pattern in this market, and copyleft means a fork
+has to stay open; nobody can take this, close it, and sell it.
+
+It is also the natural fit, since the Bukkit/Paper API this builds on is itself
+GPL-descended.
+
+Every source file carries the standard notice, and `LICENSE` is the verbatim
+GPL-3.0 text.
