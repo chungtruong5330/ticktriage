@@ -142,15 +142,26 @@ public final class CoreTests {
                 "found " + incidents.size() + " incidents");
     }
 
-    static void testSlowButStableServerIsNotFlagged() {
+    static void testSlowButStableServerRaisesNoIncident() {
         // Consistently 52 ms ticks. Slow, but nothing is spiking.
+        //
+        // This used to assert the whole report was "healthy", which was the bug:
+        // a server permanently over the 50 ms budget is not healthy, it just
+        // has no spike. What must NOT happen is an incident, because the
+        // relative threshold is what stops constant spike alerts on a server
+        // that is simply always busy.
         History h = new History();
         for (int i = 0; i < 120; i++) {
             h.add(snap(T0 + i * 1000L, 52.0, 20, 180, 120, 800, 0.55, 5));
         }
         Report r = analyse(h);
-        check("a consistently slow server raises no incident", r.healthy,
-                "relative threshold must stop constant alerts");
+        check("a consistently slow server raises no INCIDENT",
+                r.incident == null,
+                "the relative threshold must stop constant spike alerts");
+        check("but it is still told it is over budget",
+                find(r.diagnoses, "chronic-overload") != null, r.render());
+        check("and no entity flood is invented to explain it",
+                find(r.diagnoses, "entity-flood") == null, r.render());
     }
 
     // --- entity flood -----------------------------------------------------
@@ -258,6 +269,54 @@ public final class CoreTests {
                 "high heap usage alone is normal JVM behaviour");
     }
 
+    /**
+     * The regression test for a bug found by running the plugin on a real
+     * server loaded to 49 ms: it reported "no lag incidents".
+     *
+     * <p>A uniformly slow server never spikes - its median IS the problem - so
+     * a detector that only looks for spikes finds nothing, and rules that only
+     * run inside an incident were unreachable on exactly the servers they were
+     * written for.
+     */
+    static void testFlatSlowServerIsReportedWithoutAnySpike() {
+        History h = new History();
+        for (int i = 0; i < 120; i++) {
+            // Dead flat at 49 ms. No spike anywhere in the window.
+            h.add(snap(T0 + i * 1000L, 49.0, 20, 180, 120, 800, 0.55, 5));
+        }
+        Report r = analyse(h);
+        check("a flat, permanently slow server is NOT called healthy",
+                !r.healthy, r.render());
+        check("it is reported as a standing problem, not an incident",
+                r.isStanding() && r.incident == null);
+        Diagnosis d = find(r.diagnoses, "chronic-overload");
+        check("chronic overload fires with no incident at all", d != null,
+                r.render());
+        if (d != null) {
+            check("the standing report names the baseline tick time",
+                    d.headline.contains("49.0"), d.headline);
+        }
+        check("the rendered report says there was no spike",
+                r.render().contains("No spike"), r.render());
+    }
+
+    static void testFlatHealthyServerStaysHealthy() {
+        // The other side of the same coin: no spike AND a good baseline must
+        // still be reported as healthy.
+        check("a flat, fast server is still healthy", analyse(healthy(120)).healthy);
+    }
+
+    static void testStandingProblemProducesNoRemediation() {
+        // There is no hotspot to aim at, so there must be nothing to execute.
+        History h = new History();
+        for (int i = 0; i < 120; i++) {
+            h.add(snap(T0 + i * 1000L, 49.0, 20, 180, 120, 800, 0.55, 5));
+        }
+        check("a standing problem yields advice, never an automatic fix",
+                !new dev.ticktriage.core.remedy.RemediationPlanner()
+                        .planFor(analyse(h)).hasExecutableActions());
+    }
+
     static void testChronicOverloadIsReported() {
         History h = new History();
         for (int i = 0; i < 120; i++) {
@@ -307,6 +366,30 @@ public final class CoreTests {
     }
 
     // --- rendering --------------------------------------------------------
+
+    static void testSubFiftyMsSpikeDoesNotClaimTpsFell() {
+        // Found on a real server: a spike from 0.2 ms to 30 ms ticks reported
+        // "TPS fell to 20.0", which is nonsense - below a 50 ms tick, TPS is
+        // still 20. The tick time is the story there, not the TPS.
+        // A fast server (0.2 ms, as measured on a real idle Paper 26.2) that
+        // spikes to 30 ms. Still 20 TPS, but 150x its own normal.
+        History h = new History();
+        for (int i = 0; i < 120; i++) {
+            h.add(snap(T0 + i * 1000L, 0.2, 20, 180, 120, 800, 0.55, 5));
+        }
+        for (int i = 0; i < 6; i++) {
+            h.add(snap(T0 + (120 + i) * 1000L, 30.0, 20, 4207, 120, 800, 0.55, 5));
+        }
+        Report r = new DiagnosisEngine(DiagnosisEngine.defaultRules(),
+                new IncidentDetector(20.0, 1.5, 3, 2)).analyse(h);
+        String text = r.render();
+        check("a sub-50ms spike does not claim TPS fell",
+                !text.contains("TPS fell to"), text);
+        check("it reports the tick time instead",
+                text.contains("tick time rose to"), text);
+        check("a genuine sub-20 TPS incident still says TPS fell",
+                analyse(itemFlood()).render().contains("TPS fell to"));
+    }
 
     static void testReportRenders() {
         String text = analyse(itemFlood()).render();

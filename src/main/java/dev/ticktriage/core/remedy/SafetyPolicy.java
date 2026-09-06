@@ -94,8 +94,15 @@ public final class SafetyPolicy {
                 || entity.has(EntityFacts.HAS_PASSENGERS)) {
             return Decision.blocked("is riding or carrying something");
         }
+        if (entity.has(EntityFacts.OWNED)) {
+            return Decision.blocked("is reserved for a specific player");
+        }
         if (entity.has(EntityFacts.PERSISTENT)) {
-            return Decision.blocked("is marked persistent");
+            // Deliberately made permanent - an item with unlimited lifetime, or
+            // a mob set never to despawn. NOT the same as Bukkit's
+            // Entity#isPersistent(), which merely means "gets saved to disk"
+            // and is true for almost everything.
+            return Decision.blocked("was deliberately made permanent");
         }
         if (entity.has(EntityFacts.HAS_EQUIPMENT)) {
             return Decision.blocked("carries equipment");

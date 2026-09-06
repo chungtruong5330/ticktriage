@@ -21,6 +21,8 @@ public final class EntityFacts {
     public static final int PERSISTENT = 1 << 5;
     public static final int HAS_EQUIPMENT = 1 << 6;
     public static final int HAS_INVENTORY = 1 << 7;
+    /** A dropped item reserved for a particular player to pick up. */
+    public static final int OWNED = 1 << 8;
 
     public final String type;
     public final int x;
@@ -47,7 +49,7 @@ public final class EntityFacts {
     public static int flags(boolean named, boolean tamed, boolean leashed,
                            boolean inVehicle, boolean hasPassengers,
                            boolean persistent, boolean hasEquipment,
-                           boolean hasInventory) {
+                           boolean hasInventory, boolean owned) {
         int f = 0;
         if (named) {
             f |= NAMED;
@@ -72,6 +74,9 @@ public final class EntityFacts {
         }
         if (hasInventory) {
             f |= HAS_INVENTORY;
+        }
+        if (owned) {
+            f |= OWNED;
         }
         return f;
     }

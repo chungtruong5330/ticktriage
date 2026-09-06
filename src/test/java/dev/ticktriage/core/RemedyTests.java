@@ -126,10 +126,11 @@ public final class RemedyTests {
         int[] flags = {EntityFacts.NAMED, EntityFacts.TAMED,
                 EntityFacts.LEASHED, EntityFacts.IN_VEHICLE,
                 EntityFacts.HAS_PASSENGERS, EntityFacts.PERSISTENT,
-                EntityFacts.HAS_EQUIPMENT, EntityFacts.HAS_INVENTORY};
+                EntityFacts.HAS_EQUIPMENT, EntityFacts.HAS_INVENTORY,
+                EntityFacts.OWNED};
         String[] names = {"NAMED", "TAMED", "LEASHED", "IN_VEHICLE",
                 "HAS_PASSENGERS", "PERSISTENT", "HAS_EQUIPMENT",
-                "HAS_INVENTORY"};
+                "HAS_INVENTORY", "OWNED"};
         List<String> leaked = new ArrayList<>();
         for (int i = 0; i < flags.length; i++) {
             SafetyPolicy.Decision d = SafetyPolicy.defaults()
@@ -140,6 +141,17 @@ public final class RemedyTests {
         }
         check("every protection flag blocks removal", leaked.isEmpty(),
                 "these did not block: " + leaked);
+    }
+
+    static void testOwnedItemsAreProtected() {
+        // A dropped item reserved for a particular player to pick up. Found by
+        // reading the real Bukkit API during live testing; it was not protected
+        // before.
+        SafetyPolicy.Decision d = SafetyPolicy.defaults()
+                .evaluate(item(100000, EntityFacts.OWNED));
+        check("an item reserved for a player is never removed",
+                !d.allowed && d.reason.contains("reserved"),
+                String.valueOf(d.reason));
     }
 
     static void testBlockedReasonsAreSpecific() {

@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import dev.ticktriage.core.Diagnosis;
 import dev.ticktriage.core.DiagnosisEngine;
 import dev.ticktriage.core.History;
+import dev.ticktriage.core.IncidentDetector;
 import dev.ticktriage.core.IncidentLog;
 import dev.ticktriage.core.IncidentRecord;
 import dev.ticktriage.core.Report;
@@ -88,7 +89,16 @@ public final class TickTriagePlugin extends JavaPlugin {
                         getConfig().getInt("folia.scan-radius-chunks",
                                 FoliaSampler.DEFAULT_SCAN_RADIUS))
                 : new ServerSampler(blockCensusEvery);
-        engine = new DiagnosisEngine();
+        engine = new DiagnosisEngine(DiagnosisEngine.defaultRules(),
+                new IncidentDetector(
+                        getConfig().getDouble("detector.floor-ms",
+                                IncidentDetector.DEFAULT_FLOOR_MS),
+                        getConfig().getDouble("detector.spike-ratio",
+                                IncidentDetector.DEFAULT_RATIO),
+                        getConfig().getInt("detector.min-samples",
+                                IncidentDetector.DEFAULT_MIN_SAMPLES),
+                        getConfig().getInt("detector.gap-tolerance",
+                                IncidentDetector.DEFAULT_GAP_TOLERANCE)));
         planner = new RemediationPlanner(policy, radius);
         undoStore = new UndoStore();
         protection = ProtectionProviders.build(getLogger(),
@@ -189,7 +199,11 @@ public final class TickTriagePlugin extends JavaPlugin {
         }
 
         lastAlertAtMillis = now;
-        final boolean unseen = incidentLog.isNew(report.incident);
+        // A standing problem has no incident to de-duplicate against, and
+        // nothing to write to the incident log - it is a condition, not an
+        // event. It still gets logged and sent to Discord.
+        final boolean unseen = report.incident != null
+                && incidentLog.isNew(report.incident);
 
         getLogger().warning("Lag incident detected:");
         for (String line : primary.render().split("\n")) {

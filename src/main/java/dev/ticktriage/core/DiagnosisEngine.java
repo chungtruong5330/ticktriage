@@ -62,7 +62,12 @@ public final class DiagnosisEngine {
 
         Incident incident = detector.mostRecent(samples, provisional);
         if (incident == null) {
-            return Report.healthy(provisional);
+            // No spike does not mean no problem. A server sitting flat at 49 ms
+            // never produces one, because its baseline IS the problem - and a
+            // detector that only looks for spikes would report it as healthy.
+            List<Diagnosis> standing = standingDiagnoses(provisional);
+            return standing.isEmpty() ? Report.healthy(provisional)
+                    : Report.standing(provisional, standing);
         }
 
         // Recompute the baseline with the incident removed. Medians are already
@@ -71,6 +76,19 @@ public final class DiagnosisEngine {
         Baseline baseline = clean.isUsable() ? clean : provisional;
 
         return Report.of(incident, baseline, diagnose(incident, baseline));
+    }
+
+    /** Verdicts about the server's steady state, independent of any spike. */
+    public List<Diagnosis> standingDiagnoses(Baseline baseline) {
+        List<Diagnosis> found = new ArrayList<>();
+        for (DiagnosisRule rule : rules) {
+            Diagnosis d = rule.evaluateBaseline(baseline);
+            if (d != null) {
+                found.add(d);
+            }
+        }
+        sortBySeverityThenConfidence(found);
+        return found;
     }
 
     public List<Diagnosis> diagnose(Incident incident, Baseline baseline) {
@@ -82,15 +100,21 @@ public final class DiagnosisEngine {
             }
         }
 
-        found.sort(Comparator
-                .comparingInt((Diagnosis d) -> severityRank(d.severity))
-                .thenComparingDouble(d -> d.confidence)
-                .reversed());
+        sortBySeverityThenConfidence(found);
 
         if (found.isEmpty()) {
             found.add(unexplained(incident, baseline));
         }
         return found;
+    }
+
+    /** Severity first, confidence second, so a confident INFO can never bury a
+     *  tentative CRITICAL. */
+    private static void sortBySeverityThenConfidence(List<Diagnosis> found) {
+        found.sort(Comparator
+                .comparingInt((Diagnosis d) -> severityRank(d.severity))
+                .thenComparingDouble(d -> d.confidence)
+                .reversed());
     }
 
     private static int severityRank(Diagnosis.Severity severity) {
@@ -141,8 +165,8 @@ public final class DiagnosisEngine {
         if (evidence.isEmpty()) {
             evidence.add("No tracked metric moved materially during the spike");
         }
-        evidence.add("TPS fell to " + Stats.formatDouble(incident.worstTps(), 1)
-                + " for " + Stats.formatDouble(incident.durationSeconds(), 0) + "s");
+        evidence.add(incident.describeImpact() + " for "
+                + Stats.formatDouble(incident.durationSeconds(), 0) + "s");
 
         return new Diagnosis("unexplained", 0.25, Diagnosis.Severity.WARNING,
                 "Lag spike with no identifiable cause in tracked metrics",

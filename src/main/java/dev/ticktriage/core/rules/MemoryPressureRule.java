@@ -71,7 +71,7 @@ public final class MemoryPressureRule implements DiagnosisRule {
                         + Stats.formatDouble(heap * 100, 0) + "%)",
                 Stats.formatCount(peak.gcMillisInInterval) + " ms of GC pauses in a "
                         + Stats.formatCount(peak.intervalMillis) + " ms window",
-                "TPS fell to " + Stats.formatDouble(incident.worstTps(), 1)
-                        + " with " + peak.playerCount + " players online");
+                incident.describeImpact() + " with " + peak.playerCount
+                        + " players online");
     }
 }

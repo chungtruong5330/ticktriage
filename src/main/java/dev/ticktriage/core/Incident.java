@@ -42,6 +42,21 @@ public final class Incident {
         return peak.tps();
     }
 
+    /**
+     * How bad it got, in whichever unit is actually meaningful.
+     *
+     * <p>A tick under 50 ms still reports 20 TPS, so on a server that went from
+     * 0.2 ms to 30 ms ticks the honest statement is that tick time rose - not
+     * "TPS fell to 20.0", which is what this used to say and is nonsense.
+     */
+    public String describeImpact() {
+        if (peak.msPerTick > 50.0) {
+            return "TPS fell to " + Stats.formatDouble(worstTps(), 1);
+        }
+        return "tick time rose to "
+                + Stats.formatDouble(peakMsPerTick(), 0) + " ms";
+    }
+
     public double peakMsPerTick() {
         return peak.msPerTick;
     }

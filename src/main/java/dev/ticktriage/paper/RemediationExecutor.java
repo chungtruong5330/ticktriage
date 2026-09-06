@@ -203,15 +203,42 @@ public final class RemediationExecutor {
                 && ((LivingEntity) entity).isLeashed();
         boolean inVehicle = entity.isInsideVehicle();
         boolean hasPassengers = !entity.getPassengers().isEmpty();
-        boolean persistent = entity.isPersistent();
         boolean hasEquipment = hasEquipment(entity);
         boolean hasInventory = entity instanceof InventoryHolder;
+        boolean persistent = deliberatelyPermanent(entity);
+        boolean owned = entity instanceof Item
+                && ((Item) entity).getOwner() != null;
 
         Location loc = entity.getLocation();
         return new EntityFacts(entity.getType().name(), loc.getBlockX(),
                 loc.getBlockY(), loc.getBlockZ(), entity.getTicksLived(),
                 EntityFacts.flags(named, tamed, leashed, inVehicle,
-                        hasPassengers, persistent, hasEquipment, hasInventory));
+                        hasPassengers, persistent, hasEquipment, hasInventory,
+                        owned));
+    }
+
+    /**
+     * Whether somebody deliberately made this entity permanent.
+     *
+     * <p><b>Not</b> {@code Entity#isPersistent()}. That means "gets saved to the
+     * world file" and is true for virtually every entity, including ordinary
+     * dropped items - using it as a veto made remediation a no-op that removed
+     * nothing and reported "32,061 skipped: is marked persistent". Found by
+     * running an actual fix on an actual server.
+     *
+     * <p>The real signals are per-type: an item with unlimited lifetime was set
+     * that way on purpose, and a mob that will not despawn when far away was
+     * kept on purpose.
+     */
+    private boolean deliberatelyPermanent(Entity entity) {
+        if (entity instanceof Item) {
+            Item item = (Item) entity;
+            return item.isUnlimitedLifetime() || !item.willAge();
+        }
+        if (entity instanceof LivingEntity) {
+            return !((LivingEntity) entity).getRemoveWhenFarAway();
+        }
+        return false;
     }
 
     private boolean hasEquipment(Entity entity) {

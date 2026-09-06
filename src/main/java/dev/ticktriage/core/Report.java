@@ -30,6 +30,21 @@ public final class Report {
         return new Report(false, incident, baseline, diagnoses);
     }
 
+    /**
+     * Something is wrong with the server's steady state, with no incident to
+     * point at - a server sitting flat at 49 ms has no spike to report, but is
+     * one tick away from visible lag and needs telling.
+     */
+    public static Report standing(Baseline baseline,
+                                  List<Diagnosis> diagnoses) {
+        return new Report(false, null, baseline, diagnoses);
+    }
+
+    /** True when there is a problem but no discrete incident behind it. */
+    public boolean isStanding() {
+        return !healthy && incident == null;
+    }
+
     /** Highest-ranked diagnosis, or null when the server is healthy. */
     public Diagnosis primary() {
         return diagnoses.isEmpty() ? null : diagnoses.get(0);
@@ -46,13 +61,23 @@ public final class Report {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Lag incident: TPS fell to ")
-                .append(Stats.formatDouble(incident.worstTps(), 1))
-                .append(" for ")
-                .append(Stats.formatDouble(incident.durationSeconds(), 0))
-                .append("s (peak tick time ")
-                .append(Stats.formatDouble(incident.peakMsPerTick(), 0))
-                .append(" ms)");
+        if (incident == null) {
+            double tps = baseline.msPerTick <= 50.0 ? 20.0
+                    : 1000.0 / baseline.msPerTick;
+            sb.append("No spike, but the server's normal state is unhealthy:")
+                    .append(" tick time ")
+                    .append(Stats.formatDouble(baseline.msPerTick, 1))
+                    .append(" ms (").append(Stats.formatDouble(tps, 1))
+                    .append(" TPS) over ").append(baseline.sampleCount)
+                    .append(" samples");
+        } else {
+            sb.append("Lag incident: ").append(incident.describeImpact())
+                    .append(" for ")
+                    .append(Stats.formatDouble(incident.durationSeconds(), 0))
+                    .append("s (peak tick time ")
+                    .append(Stats.formatDouble(incident.peakMsPerTick(), 0))
+                    .append(" ms)");
+        }
         for (Diagnosis d : diagnoses) {
             sb.append("\n\n").append(d.render());
         }

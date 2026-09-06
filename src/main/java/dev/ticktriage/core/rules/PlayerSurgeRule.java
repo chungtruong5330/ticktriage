@@ -52,7 +52,7 @@ public final class PlayerSurgeRule implements DiagnosisRule {
                         + " more CPU - not hunting for a broken build.",
                 "Player count " + Stats.formatDouble(ratio, 1)
                         + "x the usual level",
-                "TPS fell to " + Stats.formatDouble(incident.worstTps(), 1),
+                incident.describeImpact(),
                 "Entity and chunk counts scaled with players, not beyond them");
     }
 }

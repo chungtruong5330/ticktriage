@@ -77,9 +77,15 @@ public final class TickTriageCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        sender.sendMessage("Lag incident: TPS fell to "
-                + Stats.formatDouble(report.incident.worstTps(), 1) + " for "
-                + Stats.formatDouble(report.incident.durationSeconds(), 0) + "s");
+        if (report.incident == null) {
+            // A standing problem - the baseline itself - with no spike to name.
+            sender.sendMessage(report.render().split("\n")[0]);
+        } else {
+            sender.sendMessage("Lag incident: "
+                    + report.incident.describeImpact() + " for "
+                    + Stats.formatDouble(report.incident.durationSeconds(), 0)
+                    + "s");
+        }
 
         for (Diagnosis d : report.diagnoses) {
             sender.sendMessage("");

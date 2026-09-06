@@ -27,6 +27,25 @@ incident-log:
   enabled: true
   keep: 500
 
+# When a sample counts as a lag spike. A sample must be slow in ABSOLUTE terms
+# (floor-ms) and slow relative to this server's own median (spike-ratio) before
+# it counts - requiring both is what stops a permanently-busy server from
+# alerting every thirty seconds.
+#
+# These are worth tuning. A server whose healthy tick time is 5 ms and one that
+# normally sits at 40 ms need very different floors. Measured on Paper 26.2,
+# 30,000 ticking dropped items cost about 21 ms of tick time, and 60,000 cost
+# about 49 ms - so if you want to be told before players notice, a floor below
+# 50 is reasonable.
+#
+# Note the baseline itself is judged separately: a server whose MEDIAN tick time
+# is over 45 ms is reported as chronically overloaded even when it never spikes.
+detector:
+  floor-ms: 55.0
+  spike-ratio: 1.5
+  min-samples: 3
+  gap-tolerance: 2
+
 # Folia only. Regions tick on separate threads and no thread may look at the
 # whole world, so the census fans out around each online player instead of
 # walking every loaded chunk. 6 covers a 13x13 chunk area per player.

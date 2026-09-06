@@ -29,11 +29,13 @@ Automatic fixes (1):
 A blunt cleanup plugin takes all 4,664. This takes 4,017 and explains the other
 647.
 
-**Paper & Folia 26.2 · JDK 25 · 141 tests · no runtime dependencies · no telemetry**
+**Paper & Folia 26.2 · JDK 25 · 154 tests · no runtime dependencies · no telemetry**
+
+Verified end to end on a real Paper 26.2 server. See [Live-server results](#live-server-results).
 
 ```bash
 bash build-jar.sh        # -> build/TickTriage-0.1.0.jar  (117 KB)
-bash run-core-tests.sh   # 141 tests + benchmark + demo, no server needed
+bash run-core-tests.sh   # 154 tests + benchmark + demo, no server needed
 ```
 
 > Renamed from **LagDoctor**, which is taken on SpigotMC. `Lag*` is a crowded
@@ -287,6 +289,93 @@ samples and are cached in between. Counts change slowly; TPS does not.
 
 ---
 
+## Live-server results
+
+Run on Paper 26.2 build 121 with a flat test world, driven over RCON. **This
+found three bugs that 141 passing unit tests did not**, which is the whole
+argument for doing it.
+
+### What real lag actually costs
+
+Every threshold here was originally calibrated against synthetic data assuming
+~4,000 dropped items meant a 181 ms tick. Measured:
+
+| Ticking dropped items | Tick time | TPS |
+| ---: | ---: | ---: |
+| 0 | 0.2 ms | 20.0 |
+| 6,000 | 0.2 ms | 20.0 |
+| 30,000 | 21.2 ms | 20.0 |
+| 44,451 | 33.0 ms | 20.0 |
+| 68,001 | 53.8 ms | 18.6 |
+
+Roughly **0.75 ms per 1,000 ticking items** above ~10k, and essentially free
+below that. Modern Paper is far better at this than the old folklore assumes: a
+"lag machine" of 6,000 items costs nothing measurable. Tune
+`detector.floor-ms` from this table, not from intuition.
+
+### Bug 1: chronic overload was unreachable
+
+The server sat flat at **53.8 ms per tick (18.6 TPS)** and the plugin said
+**"No lag incidents."**
+
+`ChronicOverloadRule` exists precisely for that server, but rules only ran
+inside a detected incident, and detection needs a spike above both 55 ms *and*
+1.5x baseline. On a uniformly slow server the baseline *is* 53.8 ms, so the
+relative threshold became 80 ms and the rule could never fire. The unit test
+passed because its synthetic history spiked to 190 ms over a 48 ms baseline -
+real chronically-slow servers do not spike, they just sit there.
+
+Rules can now report on the baseline alone via `evaluateBaseline`, and a report
+can describe a standing condition with no incident attached.
+
+### Bug 2: remediation removed nothing, ever
+
+Applying a fix reported `Removed: 0` and `Skipped 32,061 - is marked persistent`.
+
+The safety policy vetoed anything where `Entity#isPersistent()` was true. That
+method means "gets saved to the world file", true for virtually every entity
+including ordinary dropped items - not "deliberately made permanent", which is
+what the veto was written for. **The plugin would have shipped as a no-op**,
+refusing to remove anything while appearing to work.
+
+It now uses the per-type signals that actually mean that:
+`Item#isUnlimitedLifetime()` and `LivingEntity#getRemoveWhenFarAway()`. Reading
+the real API while fixing this also turned up `Item#getOwner()` - an item
+reserved for a specific player - which is now protected and previously was not.
+
+### Bug 3: fix results never reached the console
+
+`/ticktriage fix` printed the plan and then nothing. `PaperPlatform` routed work
+through `BukkitScheduler#runTask`, which defers to the *next* tick even when
+already on the main thread, so the RCON and console handler had returned before
+the result existed. It now runs inline when already on the main thread.
+
+### What the live run confirmed working
+
+- Loads on Paper 26.2, detects the platform, reports no claim plugins correctly
+- `Bukkit.getAverageTickTime()` returns real milliseconds (0.2 ms idle)
+- Full diagnosis pipeline: incident detected, 34,540 items identified, hotspot
+  chunk located, fix offered
+- **The 60-second age floor**, against real entities: inspected 32,066, would
+  remove **0**, all skipped as "dropped less than 60s ago" - the guarantee that
+  stops it eating a player's death drop
+- **Radius bounding**: 30,005 items existed, only 14,523 were inspected, because
+  the fix stays within 2 chunks of the hotspot
+- **Removal**: 14,518 removed, and the 5 items named "Bobs Loot" survived
+- **Undo**: restored 5,000 (its cap) and said plainly that 9,518 were past the
+  cap and gone
+
+### Known limitation found while testing
+
+A *sustained* flood eventually becomes the baseline. Once more than half the
+sample window contains it, `entity-flood` correctly sees no excess and falls
+back to "no identifiable cause" while the server is still slow. With the default
+two-hour window that takes about an hour; it took a minute here because the
+history had just been reset. `chronic-overload` is the backstop, which is
+another reason Bug 1 mattered.
+
+---
+
 ## Verification status
 
 **Verified:**
@@ -294,13 +383,13 @@ samples and are cached in between. Counts change slowly; TPS does not.
 - Compiles against real paper-api 26.2, WorldGuard 7.0.18 and GriefPrevention
   16.18.4 on JDK 25 — 72 classes, zero errors
 - Produces a working 117 KB jar with correct `plugin.yml` (`api-version: '26.2'`)
-- **141 tests** across five suites, all passing:
+- **154 tests** across five suites, all passing:
 
 | Suite | Tests | Covers |
 | --- | ---: | --- |
-| `CoreTests` | 28 | detection, baselines, rule ranking |
+| `CoreTests` | 40 | detection, baselines, ranking, standing problems |
 | `CensusTests` | 20 | the hand-written hash map and its Folia merge |
-| `RemedyTests` | 26 | what remediation refuses to do |
+| `RemedyTests` | 27 | what remediation refuses to do |
 | `ProtectionTests` | 25 | claim protection, failing closed |
 | `HistoryTests` | 42 | log encoding, de-duplication, JSON, webhook URLs |
 
@@ -310,22 +399,23 @@ protection tests are mostly about failing closed; and the webhook tests are
 mostly hostile URLs. Those are the product's entire argument, so that's where
 the tests live.
 
-**Not verified — this has never run inside a Minecraft server.** Compiling and
-unit-testing is not the same as working. Still unknown:
+**Still not verified:**
 
-- Whether `Bukkit.getAverageTickTime()` returns what the detector assumes
-- Real cost of `Chunk#getTileEntities()` on a populated world (Paper has a
-  snapshot-free overload that is likely cheaper — use it if it exists)
-- Whether `entity.customName()` and `isPersistent()` behave as the safety
-  policy assumes — **test this specifically**, it's load-bearing for safety
-- Whether the WorldGuard and GriefPrevention hooks work against live instances;
-  they compile, which is not the same thing
 - **Everything Folia.** The scheduling is written to the documented API and the
-  merge logic is property-tested, but no part of it has run on a real Folia
-  server. Thread-ownership mistakes there are silent corruption, not exceptions,
-  so this needs testing on actual Folia before anyone relies on it
-- Whether scheduler tasks survive `/reload`
-- The real false-positive rate, and whether 60s is enough of an age floor
+  merge logic is property-tested, but no part of it has run on real Folia.
+  Thread-ownership mistakes there are silent corruption rather than exceptions,
+  so it needs testing on actual Folia before anyone relies on it.
+- **The WorldGuard and GriefPrevention hooks.** They compile against the real
+  APIs, and the test server ran correctly without either installed (reporting
+  "Claim protection: none"), but neither has been exercised against a live
+  instance.
+- **The real false-positive rate on a populated server.** Everything above was
+  measured with zero players on a flat world. Player movement, chunk loading,
+  redstone and mob AI are the actual sources of lag on a real server, and none
+  of them were present.
+- **Block-entity cost.** No hoppers or spawners existed in the test world, so
+  `Chunk#getTileEntities()` was never exercised at scale.
+- Whether scheduler tasks survive `/reload`.
 
 Running a live server means accepting the Minecraft EULA, which is yours to
 accept. Download Paper 26.2, set `eula=true`, drop the jar in `plugins/`, and
@@ -337,7 +427,7 @@ leave it a week on a server you don't mind breaking. **Keep
 ## Architecture
 
 ```
-core/            no Bukkit imports anywhere — this is why 141 tests run offline
+core/            no Bukkit imports anywhere — this is why 154 tests run offline
   Snapshot           one immutable sample of server state
   WorldCensus        the per-entity hot loop; primitive hash map, benchmarked
   Baseline           what normal looks like, from medians
@@ -384,8 +474,9 @@ fix something the first time you run `gradle build`.
 
 ## Before you list it
 
-1. **Run it on a real server for a week** with `auto-apply: false`. You need the
-   false-positive rate before strangers do.
+1. **Run it on a *populated* server for a week** with `auto-apply: false`. The
+   throwaway test above had zero players on a flat world; real lag comes from
+   players, chunk loading, redstone and mob AI, none of which were present.
 2. **Verify the name** on every marketplace.
 3. **Fill in `plugin.yml`** — `website` still says `CHANGE_ME`.
 4. **Read the piracy forums.** Cracked listings are a ranked list of what
@@ -397,7 +488,7 @@ fix something the first time you run `gradle build`.
 
 ## Roadmap
 
-1. Real-server testing on both Paper and Folia; fix what breaks
+1. Folia testing on real Folia, and a populated Paper server; fix what breaks
 2. Per-plugin attribution — hard, but the feature people would pay most for
 3. A web dashboard for incident history, if owners ask for it
 

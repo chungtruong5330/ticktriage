@@ -74,9 +74,8 @@ public final class ChunkLoadRule implements DiagnosisRule {
                 Stats.formatCount(worstCount) + " chunks versus a normal "
                         + Stats.formatCount(Math.round(worstBase))
                         + " (" + Stats.formatDouble(worstRatio, 1) + "x)",
-                "TPS fell to " + Stats.formatDouble(incident.worstTps(), 1)
-                        + " for " + Stats.formatDouble(incident.durationSeconds(), 0)
-                        + "s",
+                incident.describeImpact() + " for "
+                        + Stats.formatDouble(incident.durationSeconds(), 0) + "s",
                 peak.playerCount + " players online at the time");
     }
 }

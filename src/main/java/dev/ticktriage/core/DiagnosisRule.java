@@ -18,4 +18,20 @@ public interface DiagnosisRule {
      *         null is the normal case and must be cheap.
      */
     Diagnosis evaluate(Incident incident, Baseline baseline);
+
+    /**
+     * A verdict on the server's steady state, with no incident involved.
+     *
+     * <p>Most rules have nothing to say here and the default is correct for
+     * them: an entity flood is only interesting relative to a spike. But a
+     * server that is <em>uniformly</em> slow never produces a spike to hang a
+     * diagnosis on - its baseline is the problem - and a detector that only
+     * looks for spikes can never see it. Rules that describe a standing
+     * condition override this.
+     *
+     * @return a diagnosis, or null when this rule only speaks about incidents
+     */
+    default Diagnosis evaluateBaseline(Baseline baseline) {
+        return null;
+    }
 }

@@ -38,19 +38,36 @@ public final class PaperPlatform implements Platform {
                 periodTicks));
     }
 
+    /**
+     * Run now if we are already on the main thread, otherwise schedule.
+     *
+     * <p>{@code runTask} always defers to the <em>next</em> tick, even when
+     * called from the main thread. That silently broke {@code /ticktriage fix}
+     * over RCON and the console: the command handler had already returned its
+     * output by the time the result arrived a tick later, so the dry run
+     * reported nothing at all. Found by running it on a real server.
+     */
+    private void runNowOrSoon(Runnable task) {
+        if (Bukkit.isPrimaryThread()) {
+            task.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, task);
+        }
+    }
+
     @Override
     public void runGlobal(Runnable task) {
-        Bukkit.getScheduler().runTask(plugin, task);
+        runNowOrSoon(task);
     }
 
     @Override
     public void runAtChunk(World world, int chunkX, int chunkZ, Runnable task) {
-        Bukkit.getScheduler().runTask(plugin, task);
+        runNowOrSoon(task);
     }
 
     @Override
     public void runForEntity(Entity entity, Runnable task, Runnable retired) {
-        Bukkit.getScheduler().runTask(plugin, task);
+        runNowOrSoon(task);
     }
 
     @Override
