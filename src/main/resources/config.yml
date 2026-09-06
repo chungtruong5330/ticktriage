@@ -1,0 +1,94 @@
+# TickTriage configuration.
+#
+# The defaults are deliberately conservative. This plugin exists to diagnose
+# performance problems and would be worthless if it caused one.
+
+# How often to sample the server, in ticks. 40 ticks = 2 seconds.
+# Each sample walks every entity in every loaded world, so lowering this on a
+# very large server costs real CPU. Below 20 is not recommended.
+sample-interval-ticks: 40
+
+# How many samples to keep. At the default interval, 3600 samples is two hours.
+# Memory use is bounded and proportional to this number.
+history-samples: 3600
+
+# Counting block entities means walking every loaded chunk, which is far more
+# expensive than counting entities. It runs once every N samples and is cached
+# in between. At the defaults that is once every 30 seconds.
+# Set very high to effectively disable hopper and spawner diagnosis.
+block-census-every-n-samples: 15
+
+# Shown in Discord alerts, so one webhook can serve several servers.
+server-name: ''
+
+# Past incidents are appended to incidents.tsv in this plugin's folder as plain
+# tab-separated text, readable with `cat` when the server is not running.
+incident-log:
+  enabled: true
+  keep: 500
+
+# Folia only. Regions tick on separate threads and no thread may look at the
+# whole world, so the census fans out around each online player instead of
+# walking every loaded chunk. 6 covers a 13x13 chunk area per player.
+# Chunk loaders running unattended far from any player are not seen on Folia.
+folia:
+  scan-radius-chunks: 6
+
+alerts:
+  # Log a warning to console when a CRITICAL incident is diagnosed.
+  enabled: true
+
+  # Optional Discord webhook. Owners live in Discord, not the console.
+  # Must be an https://discord.com/api/webhooks/... URL; anything else is
+  # rejected so a typo cannot turn this into a request-forwarding tool.
+  discord-webhook: ''
+  # Minimum seconds between alerts. Without this, one bad farm produces a
+  # thousand identical console lines and owners stop reading them.
+  cooldown-seconds: 300
+
+remediation:
+  # Master switch for the fix commands.
+  enabled: true
+
+  # Apply targeted fixes automatically when a CRITICAL incident is diagnosed.
+  # OFF by default. Leaving it off means /ticktriage fix always dry-runs first
+  # and a human confirms - which is the whole difference between this and the
+  # blunt cleanup plugins. Turn it on only once you trust the diagnoses on
+  # YOUR server.
+  auto-apply: false
+
+  # How far around the diagnosed hotspot a fix may reach. 2 means a 5x5 block
+  # of chunks. Larger radii start reaching into builds that had nothing to do
+  # with the problem.
+  radius-chunks: 2
+
+  # Entities younger than this are never removed. A player who just died has
+  # their entire inventory on the ground; clearing it would be the worst thing
+  # this plugin could do. Do not lower this without a good reason.
+  min-entity-age-seconds: 60
+
+  # Never remove anything inside a claim or region owned by a player.
+  # If one of these plugins is installed but TickTriage cannot hook into it,
+  # remediation stops entirely rather than carrying on with claim checking
+  # silently disabled.
+  respect-claims:
+    worldguard: true
+    griefprevention: true
+
+  # Worlds this plugin may never remove anything in.
+  protected-worlds: []
+  #  - creative
+  #  - build
+
+  # Explicit boxes to leave alone, for servers that protect spawn by
+  # convention rather than with a claim plugin. Inclusive on both corners.
+  protected-regions: []
+  #  - world: world
+  #    from: [-200, -64, -200]
+  #    to: [200, 320, 200]
+
+  # The allowlist of types that may EVER be auto-removed. Leave empty to use
+  # the built-in default (items, XP orbs, arrows, snowballs, eggs).
+  # Mobs are deliberately absent: killing them is how blunt cleanup plugins end
+  # up deleting somebody's bred animals. Add types here at your own risk.
+  removable-types: []

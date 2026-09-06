@@ -1,0 +1,48 @@
+Copyright (c) 2026 chungtruong5330. All rights reserved.
+
+TickTriage is proprietary software. No permission is granted to use, copy,
+modify, merge, publish, distribute, sublicense, or sell copies of this software
+except under a separate written licence from the copyright holder, or under the
+terms of a purchase made through an authorised distribution channel.
+
+Purchasing a copy grants the buyer the right to run it on servers they operate.
+It does not grant the right to redistribute it, republish it, or resell it.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+-------------------------------------------------------------------------------
+Why this licence and not MIT
+-------------------------------------------------------------------------------
+
+This is deliberately restrictive because the plan is to sell the plugin. Under a
+permissive licence such as MIT, anyone could legally take the paid build, upload
+it somewhere, and give it away - and you would have no standing to object. That
+is not a hypothetical in the Minecraft plugin market.
+
+If you would rather open-source it, MIT or Apache-2.0 are the usual choices, and
+swapping this file is all it takes. A common middle path is to keep the core
+proprietary and publish a free-tier build separately.
+
+This is a plain-language starting point written by a programmer, not a lawyer,
+and it is not legal advice. If real money starts flowing through this, get an
+actual licence reviewed.
+
+-------------------------------------------------------------------------------
+Third-party components
+-------------------------------------------------------------------------------
+
+TickTriage bundles no third-party code. It compiles against, but does not
+redistribute:
+
+  paper-api        (Paper / PaperMC)          - GPL-3.0 / MIT, compileOnly
+  worldguard       (EngineHub)                - LGPL-3.0,     compileOnly
+  griefprevention  (TechFortress)             - MIT,          compileOnly
+
+These are provided by the server at runtime and are not shipped in the jar.
+Confirm each project's current terms before you publish.

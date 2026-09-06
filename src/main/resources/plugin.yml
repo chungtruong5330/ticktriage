@@ -1,0 +1,34 @@
+name: TickTriage
+version: '${version}'
+main: dev.ticktriage.paper.TickTriagePlugin
+api-version: '26.2'
+description: Explains why your server lagged, in plain language, with the fix.
+author: chungtruong5330
+website: https://github.com/chungtruong5330/ticktriage
+
+# Optional. Claim protection hooks load only if these are present.
+softdepend: [WorldGuard, GriefPrevention]
+
+# Regionised multithreading. The sampler and every fix run on the thread that
+# owns the chunks they touch; see FoliaSampler for the one behavioural
+# difference (it censuses around players, not every loaded chunk).
+folia-supported: true
+
+commands:
+  ticktriage:
+    description: Show the most recent lag diagnosis
+    usage: /ticktriage [report|status|history|fix|undo|reset|help]
+    aliases: [tt, triage]
+    permission: ticktriage.use
+    permission-message: You do not have permission to use TickTriage.
+
+permissions:
+  ticktriage.use:
+    description: View lag reports
+    default: op
+  ticktriage.fix:
+    description: Apply targeted fixes and undo them
+    default: op
+  ticktriage.admin:
+    description: Reset collected history
+    default: op

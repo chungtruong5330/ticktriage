@@ -1,0 +1,57 @@
+package dev.ticktriage.core.rules;
+
+import dev.ticktriage.core.Baseline;
+import dev.ticktriage.core.Diagnosis;
+import dev.ticktriage.core.DiagnosisRule;
+import dev.ticktriage.core.Incident;
+import dev.ticktriage.core.Stats;
+
+/**
+ * The server is not spiking - it is permanently over budget.
+ *
+ * <p>Worth stating separately because the fix is completely different. Owners
+ * in this state usually chase individual lag spikes for weeks without noticing
+ * that their <em>baseline</em> never reaches 20 TPS in the first place.
+ */
+public final class ChronicOverloadRule implements DiagnosisRule {
+
+    /** A tick has a 50 ms budget; consistently above 45 ms leaves no headroom. */
+    private static final double WARN_MS = 45.0;
+    private static final double SEVERE_MS = 60.0;
+
+    @Override
+    public String id() {
+        return "chronic-overload";
+    }
+
+    @Override
+    public Diagnosis evaluate(Incident incident, Baseline baseline) {
+        if (!baseline.isUsable() || baseline.msPerTick < WARN_MS) {
+            return null;
+        }
+
+        double confidence = 0.5 + 0.5 * Stats.scale(baseline.msPerTick,
+                WARN_MS, SEVERE_MS);
+        double baselineTps = baseline.msPerTick <= 50.0 ? 20.0
+                : 1000.0 / baseline.msPerTick;
+
+        Diagnosis.Severity severity = baseline.msPerTick >= SEVERE_MS
+                ? Diagnosis.Severity.CRITICAL : Diagnosis.Severity.WARNING;
+
+        return new Diagnosis(id(), confidence, severity,
+                "Baseline performance is already poor - normal tick time is "
+                        + Stats.formatDouble(baseline.msPerTick, 1) + " ms",
+                "Individual spikes are a symptom here, not the disease. This"
+                        + " server has no tick headroom even when nothing is"
+                        + " wrong. Reduce view-distance and"
+                        + " simulation-distance first, then profile with spark"
+                        + " to find which plugins own the baseline cost.",
+                "Median tick time " + Stats.formatDouble(baseline.msPerTick, 1)
+                        + " ms against a 50 ms budget",
+                "Typical TPS around " + Stats.formatDouble(baselineTps, 1)
+                        + " before any incident",
+                "Measured over " + baseline.sampleCount + " samples with a"
+                        + " median of " + Stats.formatDouble(baseline.playerCount, 0)
+                        + " players");
+    }
+}

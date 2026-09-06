@@ -1,0 +1,37 @@
+# Build output
+build/
+out/
+target/
+
+# Dependencies fetched by build-jar.sh - reproducible, so not committed
+libs/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Java
+*.class
+*.jar
+*.log
+hs_err_pid*
+replay_pid*
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Runtime data, if you ever test a server inside the repo
+incidents.tsv
+server/
+plugins/
