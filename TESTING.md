@@ -3,6 +3,17 @@
 Thanks for trying this. It is a beta and you are among the first people to run
 it on a server with actual players on it.
 
+## Before you install it
+
+**This plugin's code was written primarily by an AI model**, directed by a human
+who made the design and safety decisions. Every commit records it. You are
+entitled to weigh that however you like before running it on your server.
+
+If it helps: what the plugin does and does not touch is spelled out below, it
+changes nothing by default, and every claim about it having been tested is
+backed by [docs/ENGINEERING.md](docs/ENGINEERING.md), which also lists what has
+*not* been verified.
+
 ## What it does
 
 Watches your server, learns what its normal tick time and entity counts look

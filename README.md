@@ -20,6 +20,9 @@ you which entity type, in which chunk, and which config key to change.
 **Status: beta.** Verified on real Paper and Folia 26.2. Not yet run on a server
 with players on it — see [Status](#status).
 
+**Contains AI-generated content.** The code was written primarily by an AI
+model. See [How this was built](#how-this-was-built).
+
 ---
 
 ## Requirements
@@ -138,6 +141,31 @@ would be most useful to report.
 
 Detailed test results, benchmarks and design rationale are in
 [docs/ENGINEERING.md](docs/ENGINEERING.md).
+
+## How this was built
+
+**The code in this repository was written primarily by Claude (Anthropic's
+model), working from direction by [@slateline](https://github.com/slateline).**
+Every commit records this in a `Co-Authored-By` trailer.
+
+What that means concretely: the Java, the tests, the build scripts and the
+documentation were AI-written. The human contribution was direction and
+judgement — choosing the problem, deciding what the plugin should refuse to do,
+calling which bugs mattered, setting the licence, and deciding when a claim was
+not yet supported by evidence.
+
+Some consequences worth stating:
+
+- **It is not on Modrinth.** Their rules prohibit publishing projects that are
+  primarily a product of AI output, and this one is. That is the correct reading
+  of the rule, not an oversight.
+- **Judge it on the record, not the byline.** Whether it works is answered by
+  [docs/ENGINEERING.md](docs/ENGINEERING.md): what was measured, what was run on
+  a real server, the four bugs that live testing caught, and — most importantly
+  — the list of things still unverified. That evidence would be the right basis
+  for trusting or distrusting any plugin.
+- **This disclosure stays accurate.** If the balance of authorship changes
+  through ongoing maintenance, this section changes with it.
 
 ## Contributing
 
