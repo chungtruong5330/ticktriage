@@ -291,6 +291,8 @@ samples and are cached in between. Counts change slowly; TPS does not.
 
 ## Live-server results
 
+### Paper
+
 Run on Paper 26.2 build 121 with a flat test world, driven over RCON. **This
 found three bugs that 141 passing unit tests did not**, which is the whole
 argument for doing it.
@@ -365,6 +367,39 @@ the result existed. It now runs inline when already on the main thread.
 - **Undo**: restored 5,000 (its cap) and said plainly that 9,518 were past the
   cap and gone
 
+### Folia
+
+Also run on real **Folia 26.2 build 7** (beta), as a separate server instance.
+
+Confirmed working:
+
+- The plugin loads. Folia refuses plugins without `folia-supported: true`, so
+  loading at all proves that half.
+- Platform detection: `Running on Folia - regionised census, 6 chunks around
+  each player`.
+- `GlobalRegionScheduler` repeating tasks run - 111 samples collected over the
+  run, tick time reported as 0.1 ms.
+- Every command works over RCON: `status`, `report`, `fix`, `history`.
+- **Zero TickTriage errors or thread-safety violations in the log.** Folia is
+  loud about cross-region access, and it said nothing.
+
+Not confirmed, and this is the important half:
+
+- **The census fan-out itself.** The Folia sampler aims work at each online
+  player's entity scheduler, so with nobody online it never runs. Testing it
+  needs a connected player, and no headless client speaks 26.2 yet - mineflayer
+  bundles a `minecraft-data` that predates the version. That is a tooling gap,
+  not a plugin problem, but it means the merge path has still only ever been
+  exercised by unit tests.
+
+**A blind spot worth knowing about.** On Folia with nobody online, TickTriage
+sees no entities at all - not "fewer", none. Regions are seeded from players, so
+a server with forceloaded chunk-loader farms and an empty player list is
+invisible to it. On Paper the same server would be fully censused. Seeding also
+from `World#getForceLoadedChunks()` would close most of that gap, but adding
+Folia code that cannot be tested here would be a worse trade than documenting
+it, so it is documented.
+
 ### Known limitation found while testing
 
 A *sustained* flood eventually becomes the baseline. Once more than half the
@@ -401,10 +436,10 @@ the tests live.
 
 **Still not verified:**
 
-- **Everything Folia.** The scheduling is written to the documented API and the
-  merge logic is property-tested, but no part of it has run on real Folia.
-  Thread-ownership mistakes there are silent corruption rather than exceptions,
-  so it needs testing on actual Folia before anyone relies on it.
+- **The Folia census fan-out.** Folia itself now runs the plugin cleanly (see
+  above), but the per-region census only fires when a player is online, and no
+  headless client speaks 26.2 yet. The scheduling, loading and command paths are
+  verified; the census and merge on real regions are not.
 - **The WorldGuard and GriefPrevention hooks.** They compile against the real
   APIs, and the test server ran correctly without either installed (reporting
   "Claim protection: none"), but neither has been exercised against a live
